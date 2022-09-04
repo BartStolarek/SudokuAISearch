@@ -1,5 +1,6 @@
 from sudoku import Cell, Box, Grid
 from math import sqrt
+from agent import Agent
 
 
 def main():
@@ -37,24 +38,34 @@ def main():
         [box20, box21, box22]
     ]
     boxes_in_grid = 9
+    verbose = 1
 
-    grid = Grid(boxes_in_grid, input_grid)
+    grid = Grid(boxes_in_grid, input_grid, verbose)
 
-
-
+    print("#########################################################")
+    print("##### STARTING PUZZLE  ##################################")
+    print("#########################################################")
     grid.print_flat_grid_values()
+    print("#########################################################")
+    print("#########################################################\n")
+    print("Grid: There are {} remaining cells to solve\n".format(grid.remaining_empty_cells))
 
+    grid.update_all_cells_possible_values()
     print("")
+    print("Creating Agent to solve sudoku puzzle\n")
+    agent = Agent()
 
-    grid.print_flat_grid_coords()
+    style1 = "min_ascending_values_row"
 
-    found = True
-    while found:
-        print("")
-        found = grid.check_for_final_cell()
+    style2 = "min_ascending_values_column"
 
+    style3 = "min_ascending_cell_values_box"
 
+    style4 = "min_ascending_remaining_box"
 
+    #while (grid.remaining_empty_cells != 0):
+    agent.update_cell_solving_order(grid, style4)
+    agent.solve_next_cell(grid)
 
 
 if __name__ == '__main__':
