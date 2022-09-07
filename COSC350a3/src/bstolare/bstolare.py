@@ -46,6 +46,10 @@ def main():
     print("##### STARTING PUZZLE  ##################################")
     print("#########################################################")
     grid.print_flat_grid_values()
+    print("")
+    #grid.print_flat_grid_coords()
+    print("")
+    #grid.print_flat_grid_box()
     print("#########################################################")
     print("#########################################################\n")
     print("Grid: There are {} remaining cells to solve\n".format(grid.remaining_empty_cells))
@@ -62,11 +66,17 @@ def main():
     style3 = "min_ascending_cell_values_box"
 
     style4 = "min_ascending_remaining_box"
+    agent.update_cell_solving_order(grid)
 
-    #while (grid.remaining_empty_cells != 0):
-    agent.update_cell_solving_order(grid, style4)
-    agent.solve_next_cell(grid)
 
+    remaining = 100
+    visited = []
+    agent.solve_the_sudoku(grid=grid)
+
+
+
+
+    grid.print_flat_grid_values()
 
 if __name__ == '__main__':
     main()

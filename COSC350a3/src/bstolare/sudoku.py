@@ -1,5 +1,6 @@
 from math import sqrt
 
+
 def get_unicode_symbol(unicode):
     unicode_symbols = {'nesw': '┼',
                        'ew': '─',
@@ -8,6 +9,7 @@ def get_unicode_symbol(unicode):
 
     return unicode_symbols[unicode]
 
+
 class Cell:
 
     def __init__(self):
@@ -15,7 +17,6 @@ class Cell:
         self.box = [-1, -1]
         self.coord = [-1, -1]
         self.possible_values = []
-
 
 
 class Box:
@@ -32,7 +33,6 @@ class Box:
         self.coord = [-1, -1]
         self.complete = False
         self.remaining_cells = 9
-
 
 
 class Grid:
@@ -68,7 +68,8 @@ class Grid:
                         cell.value = input_grid[x_grid][y_grid][x_box][y_box]  # get value from input grid
                         if cell.value != 0:  # Adjust box's remaining cells to find if cell already has a value
                             box.remaining_cells -= 1
-                        cell.box = [x_box, y_box]
+                        cell.box = [x_grid, y_grid]
+
                         cell_row.append(cell)  # add cell to box's row
 
                     # Add row of cells to box
@@ -109,7 +110,9 @@ class Grid:
         grid_global_y = 0
         for row in range(0, self.cell_dimension):
             for column in range(0, self.cell_dimension):
-                self.flat_grid[row][column].coord = [grid_global_x, grid_global_y]
+                cell = self.flat_grid[row][column]
+                cell.coord = [grid_global_x, grid_global_y]
+
                 grid_global_y += 1
             grid_global_y = 0
             grid_global_x += 1
@@ -124,76 +127,94 @@ class Grid:
         self.remaining_empty_cells = count
         return count
 
+    def update_cell_possible_values(self, cell):
+        if self.verbose > 1:
+            print("Cell{} is having its possible values updated".format(cell.coord))
+
+        cells_row = cell.coord[0]
+        cells_column = cell.coord[1]
+        box = self.boxes[cell.box[0]][cell.box[1]]
+
+        present_values = []
+        if not self.rows[cells_row]:
+            value_check = 45
+            for column in range(0, self.cell_dimension):
+                value_check -= self.flat_grid[cells_row][column].value
+                present_values.append(self.flat_grid[cells_row][column].value)
+            if not value_check:
+                self.rows[cells_row] = True
+
+
+        if not self.columns[cells_column]:
+            value_check = 45
+            for row in range(0, self.cell_dimension):
+                value_check -= self.flat_grid[row][cells_column].value
+                present_values.append(self.flat_grid[row][cells_column].value)
+            if not value_check:
+                self.columns[cells_column] = True
+
+        if not box.complete:
+            value_check = 45
+            for row in range(0, self.box_dimension):
+                for column in range(0, self.box_dimension):
+
+                    value_check -= box.cells[row][column].value
+                    present_values.append(box.cells[row][column].value)
+
+
+            if not value_check:
+                box.complete = True
+
+        present_values = list(set(present_values))
+
+        missing_values = []
+        for i in range(1, 10):
+            if i not in present_values:
+                missing_values.append(i)
+        cell.possible_values = missing_values
+
+
+    def get_minimum_remaining(self, cell):
+        if self.verbose > 1:
+            print("Cell{} is having its possible values updated".format(cell.coord))
+
+        cells_row = cell.coord[0]
+        cells_column = cell.coord[1]
+        box = self.boxes[cell.box[0]][cell.box[1]]
+        numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        row_present = []
+        if not self.rows[cells_row]:
+            for column in range(0, self.cell_dimension):
+                cell = self.flat_grid[cells_row][cells_column]
+                if cell.value not in numbers:
+                    row_present.append(cell.value)
+
+        column_present = []
+        if not self.columns[cells_column]:
+            for row in range(0, self.cell_dimension):
+                cell = self.flat_grid[row][cells_column]
+                if cell.value not in numbers:
+                    column_present.append(cell.value)
+
+        box_present = []
+        if not box.complete:
+            for row in range(0, self.box_dimension):
+                for column in range(0, self.box_dimension):
+                    cell = box.cells[row][column]
+                    if cell.value not in numbers:
+                        box_present.append(cell.value)
+
+        return min(len(row_present), len(column_present), len(box_present))
 
     def update_all_cells_possible_values(self):
-        if self.verbose > 0:
-            print("Updating all cell's possible values (change verbose to 2+ and re-run to see these updates)")
-        for cell_row in range(0, self.cell_dimension):
-            for cell_column in range(0, self.cell_dimension):
+        for row in range(0, self.cell_dimension):
+            for column in range(0, self.cell_dimension):
 
-                cell = self.flat_grid[cell_row][cell_column]
 
-                cell_column_missing_values = self.get_cells_column_missing_values(cell)
-
-                cell_row_missing_values = self.get_cells_column_missing_values(cell)
-
-                cell_box_missing_values = self.get_cells_box_missing_values(cell)
-
-                cells_missing_values = []
-                for i in range(1,10):
-                    if i in cell_column_missing_values and i in cell_row_missing_values and i in cell_box_missing_values:
-                        cells_missing_values.append(i)
-
-                if self.verbose > 1:
-                    print("Cell[{}, {}] missing_values: {}".format(cell_row,cell_column,cells_missing_values))
-
-                cell.possible_values = cells_missing_values
+                self.update_cell_possible_values(self.flat_grid[row][column])
         self.get_remaining_empty_cell_count()
 
-    def get_cells_column_missing_values(self,cell):
-        present_values = []
-        missing_values = []
-        if not self.columns[cell.coord[1]]:
-            for cell_row in range(0, self.cell_dimension):
-                present_values.append(self.flat_grid[cell_row][cell.coord[1]].value)
-            for i in range(1, 10):
-                if i not in present_values:
-                    missing_values.append(i)
-            if not missing_values:
-                self.columns[cell.coord[1]] = True
-        return missing_values
-
-    def get_cells_row_missing_values(self,cell):
-        if not self.rows[cell.coord[0]]:
-            present_values = []
-            missing_values = []
-            for cell_column in range(0, self.cell_dimension):
-                present_values.append(self.flat_grid[cell.coord[0]][cell_column].value)
-
-            missing_values = []
-            for i in range(1, 10):
-                if i not in present_values:
-                    missing_values.append(i)
-            if not missing_values:
-                self.rows[cell.coord[0]] = True
-        return missing_values
-
-    def get_cells_box_missing_values(self,cell):
-        present_values = []
-        missing_values = []
-        if not self.boxes[cell.box[0]][cell.box[1]].complete:
-            for box_row in range(0,self.box_dimension):
-                for box_column in range(0, self.box_dimension):
-                    present_values.append(self.boxes[cell.box[0]][cell.box[1]].cells[box_row][box_column].value)
-            for i in range(1, 10):
-                if i not in present_values:
-                    missing_values.append(i)
-            if not missing_values:
-                self.boxes[cell.box[0]][cell.box[1]].complete = True
-                self.remaining_boxes -= 1
-        return missing_values
-
-    def check_if_box_complete(self,x, y):
+    def check_if_box_complete(self, x, y):
         complete_cell_count = 0
         for row in range(0, self.box_dimension):
             for column in range(0, self.box_dimension):
@@ -204,29 +225,63 @@ class Grid:
         if complete_cell_count == 9:
             self.boxes[x][y].complete = True
 
+    def check_valid(self, cell, value):
+        cells_row = cell.coord[0]
+        cells_column = cell.coord[1]
+        box = self.boxes[cell.box[0]][cell.box[1]]
+        present_values = []
+        if not self.rows[cells_row]:
+            value_check = 45
+            for column in range(0, self.cell_dimension):
+                value_check -= self.flat_grid[cells_row][column].value
+                present_values.append(self.flat_grid[cells_row][column].value)
+            if not value_check:
+                self.rows[cells_row] = True
+        if not self.columns[cells_column]:
+            value_check = 45
+            for row in range(0, self.cell_dimension):
+                value_check -= self.flat_grid[row][cells_column].value
+                present_values.append(self.flat_grid[row][cells_column].value)
+            if not value_check:
+                self.columns[cells_column] = True
+        if not box.complete:
+            value_check = 45
+            for row in range(0, self.box_dimension):
+                for column in range(0, self.box_dimension):
+                    value_check -= box.cells[row][column].value
+                    present_values.append(box.cells[row][column].value)
+            if not value_check:
+                box.complete = True
+
+        present_values = list(set(present_values))
+
+        if value in present_values:
+            return 0
+        return 1
+
     def update_cell(self, cell, value):
-        if self.verbose > 0:
+        if self.verbose > 1:
             print("Updating Cell{} value to {}".format(cell.coord, value))
+
+
         cell.value = value
-        self.boxes[cell.box[0]][cell.box[1]] -= 1
+        self.boxes[cell.box[0]][cell.box[1]].remaining_cells -= 1
         self.update_all_cells_possible_values()
         self.get_remaining_empty_cell_count()
-        self.check_if_box_complete(cell.box[0],cell.box[1])
-        left_column = self.get_cells_column_missing_values(cell)
-        left_row = self.get_cells_row_missing_values(cell)
+        self.check_if_box_complete(cell.box[0], cell.box[1])
 
-    def undo_cell_change(self, cell, possible_values):
-        if self.verbose > 0:
+
+    def undo_cell_change(self, cell):
+        if self.verbose > 1:
             print("Undo'ing Cell{} value back to 0".format(cell.coord))
         cell.value = 0
-        cell.possible_values = possible_values
-        self.boxes[cell.box[0]][cell.box[1]] += 1
+        self.boxes[cell.box[0]][cell.box[1]].remaining_cells += 1
+        self.boxes[cell.box[0]][cell.box[1]].complete = False
+        self.rows[cell.coord[0]] = False
+        self.columns[cell.coord[0]] = False
         self.update_all_cells_possible_values()
         self.get_remaining_empty_cell_count()
-        self.check_if_box_complete(cell.box[0],cell.box[1])
-        left_column = self.get_cells_column_missing_values(cell)
-        left_row = self.get_cells_row_missing_values(cell)
-
+        self.check_if_box_complete(cell.box[0], cell.box[1])
 
 
     def get_cell_with_coords(self, x, y):
@@ -238,10 +293,11 @@ class Grid:
                 buffer_string = " "
                 for sub_column in range(0, self.cell_dimension):
                     if sub_column % 3 == 0:
-                        buffer_string = buffer_string + get_unicode_symbol("nesw") + get_unicode_symbol("ew") + get_unicode_symbol("ew") + get_unicode_symbol("ew")
+                        buffer_string = buffer_string + get_unicode_symbol("nesw") + get_unicode_symbol(
+                            "ew") + get_unicode_symbol("ew") + get_unicode_symbol("ew")
                     else:
                         buffer_string = buffer_string + get_unicode_symbol("ew") + get_unicode_symbol("ew")
-                    if sub_column == self.cell_dimension-1:
+                    if sub_column == self.cell_dimension - 1:
                         buffer_string = buffer_string + get_unicode_symbol("nesw")
                 print(buffer_string)
             row_string = " "
@@ -254,17 +310,24 @@ class Grid:
         buffer_string = " "
         for sub_column in range(0, self.cell_dimension):
             if sub_column % 3 == 0:
-                buffer_string = buffer_string + get_unicode_symbol("nesw") + get_unicode_symbol("ew") + get_unicode_symbol("ew") + get_unicode_symbol("ew")
+                buffer_string = buffer_string + get_unicode_symbol("nesw") + get_unicode_symbol(
+                    "ew") + get_unicode_symbol("ew") + get_unicode_symbol("ew")
             else:
                 buffer_string = buffer_string + get_unicode_symbol("ew") + get_unicode_symbol("ew")
-            if sub_column == self.cell_dimension-1:
+            if sub_column == self.cell_dimension - 1:
                 buffer_string = buffer_string + get_unicode_symbol("nesw")
         print(buffer_string)
-
 
     def print_flat_grid_coords(self):
         for row in range(0, self.cell_dimension):
             row_string = " "
             for column in range(0, self.cell_dimension):
                 row_string = row_string + str(self.flat_grid[row][column].coord) + " "
+            print(row_string)
+
+    def print_flat_grid_box(self):
+        for row in range(0, self.cell_dimension):
+            row_string = " "
+            for column in range(0, self.cell_dimension):
+                row_string = row_string + str(self.flat_grid[row][column].box) + " "
             print(row_string)

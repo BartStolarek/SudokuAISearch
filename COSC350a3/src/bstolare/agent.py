@@ -1,311 +1,258 @@
 import random
 
+
 class Change:
     def __init__(self):
+        self.nothing
+
+
+class Node:
+    def __init__(self, cell, value):
+        self.cell = cell
+        self.value = value
 
 
 class Agent:
     def __init__(self):
         self.cell_order = [[], [], [], [], [], [], [], [], [], []]
         self.queue = []
-        self.change_log = [] # 2D array containing historical: [cell, value, possible_values, tried_values]
+        self.change_log = []  # 2D array containing historical: [cell, value, possible_values, tried_values]
+        self.change_log_values = []
+        self.step_count = 0
+        self.visited = set()
+        self.change_log = []
 
-    def solve_next_cell(self, grid):
+    def keep_going(self, grid):
+        iteration = 1
+        visited = []
+        print(len(self.queue))
+        for cell in self.queue:
+            print("{}: Cell{} in Box{} with pv: {}".format(iteration, cell.coord,cell.box,cell.possible_values))
+            iteration += 1
         if self.queue:
             cell = self.queue.pop(0)
-            value = cell.possible_values.pop(0)
-            possible_values = cell.possible_values
-            change = [cell, possible_values]
-            grid.update_cell(cell, value)
-            self.change_log.append(change)
-            print("Agent: Updating Cell{} with value {}".format(cell.coord,value))
+            for value in cell.possible_values:
+                node = Node(cell, value)
+
+
+
+    def startDFS(self, grid):
+        self.grid = grid
+        visited = []
+        row = 0
+        column = 0
+        cell = self.grid.flat_grid[row][column]
+        print("here Cell{}".format(cell.coord))
+        for value in range(1, 10):
+            node = Node(cell, value)
+            print("check valid: {}".format(grid.check_valid(node.cell, value)))
+            if node not in visited and grid.check_valid(node.cell, value):
+                visited.append(node)
+                print("Agent: updating Cell{} to value {}".format(node.cell.coord, node.cell.value))
+                self.grid.update_cell(node.cell, node.value)
+                self.mydfsNew(row, column + 1, visited)
+
+    def newest(self, grid):
+        visited = []
+        self.grid = grid
+        row = 0
+        column = 0
+        cell = self.grid.flat_grid[row][column]
+        if cell.value == 0:
+            print("Cell{} has value 0".format(cell.coord))
+            for value in range(1, 10):
+                node = Node(cell, value)
+                if node not in visited and self.grid.check_valid(node.cell, value):
+                    visited.append(node)
+                    print("Cell{} updating to {}".format(node.cell.coord, value))
+                    self.grid.update_cell(node.cell, value)
+                    self.newestDFS(row, column + 1, visited)
         else:
-            print("Agent: No more options, and puzzle is unsolved")
-            change = self.change_log.pop()
-            cell = change[0]
-            possible_values = change[1]
-            if possible_values > 0:
-            grid.undo_cell_change(cell,possible_values)
-            self.queue.insert(0, cell)
-            print("Agent: Undo last move on Cell{}, value ")
-        # TODO: figure out how i can use change log to finish this. struggling to work out logic for values and possible_values
-        #   Good idea to check how my assignment 1 did it
+            print("Cell{} has value {}".format(cell.coord, cell.value))
+            self.newestDFS(row, column + 1, visited)
+
+    def newestDFS(self, row, column, visited):
+        column = column % 8
+        if column == 0:
+            row += 1
+        if not self.grid.remaining_empty_cells or row >= self.grid.cell_dimension or column >= self.grid.cell_dimension:
+            return
+
+        cell = self.grid.flat_grid[row][column]
+        if cell.value == 0:
+            print("Cell{} has value 0".format(cell.coord))
+            for value in range(1, 10):
+                node = Node(cell, value)
+                if node not in visited and self.grid.check_valid(node.cell, value):
+                    visited.append(node)
+                    print("Cell{} updating to {}".format(node.cell.coord, value))
+                    self.grid.update_cell(node.cell, value)
+                    self.newestDFS(row, column + 1, visited)
+        else:
+            print("Cell{} has value {}".format(cell.coord, cell.value))
+            self.newestDFS(row, column + 1, visited)
+
+    def another_one(self, grid):
+        self.grid = grid
+        iteration = 0
+        value_list = []
+        valid_cells = 0
+        total_cells = grid.remaining_empty_cells
+        row = 0
+        column = 0
+        cell = self.queue[0]
+        print("Start with Cell{}".format(cell.coord))
+        for value in cell.possible_values:
+            if valid_cells == total_cells:
+                return
+            if self.grid.check_valid(cell, value):
+                valid_cells += 1
+                value_list.append(value)
+                if valid_cells == total_cells:
+                    return
+                print("Added Cell{} value {} to value_list: {}".format(cell.coord, value, value_list))
+                self.stuff(iteration + 1, valid_cells, total_cells, value_list)
+            valid_cells -= 1
+            value_list.pop()
+        print(value_list)
+
+    def stuff(self, iteration, valid_cells, total_cells, value_list):
+        if valid_cells == total_cells or iteration == len(self.queue):
+            return
+        cell = self.queue[iteration]
+        print("Cell{}".format(cell.coord))
+        for value in cell.possible_values:
+            if valid_cells == total_cells:
+                return
+            if self.grid.check_valid(cell, value):
+                valid_cells += 1
+                value_list.append(value)
+                if valid_cells == total_cells:
+                    return
+                print("Added Cell{} value {} to value_list: {}".format(cell.coord, value, value_list))
+                self.stuff(iteration + 1, valid_cells, total_cells, value_list)
+            valid_cells -= 1
+            value_list.pop()
+
+    def mydfsNew(self, row, column, visited):
+
+        column = column % 8
+        if column == 0:
+            row += 1
+        if not self.grid.remaining_empty_cells or row >= self.grid.cell_dimension or column >= self.grid.cell_dimension:
+            return
+
+        cell = self.grid.flat_grid[row][column]
+        if cell.value == 0:
+            for value in range(1, 10):
+                node = Node(cell, value)
+                if node not in visited and self.grid.check_valid(node.cell, value):
+                    visited.append(node)
+                    print("Agent: updating Cell{} to value {}".format(node.cell.coord, value))
+                    self.grid.update_cell(node.cell, value)
+                    if not self.grid.remaining_empty_cells:
+                        return
+                    self.mydfsNew(row, column + 1, visited)
+        else:
+            self.mydfsNew(row, column + 1, visited)
+
+    def solve_next_cell_new(self, grid):
+
+        # Add move to cells position in change log
+
+        cell = self.queue.pop(0)
+        if cell not in self.change_log_cells:
+            self.change_log_cells.append(cell)
+
+        index = self.change_log_cells.index(cell)
+        print(index)
+
+    def solve_next_cell(self, grid):
+
+        self.step_count += 1
+        if self.queue:
+            cell = self.queue.pop(0)
+            current_cell_value = cell.value
+            cell.value = "X"
+            print("")
+            print("#########################################################")
+            print("################ STEP {} ################################".format(self.step_count))
+            print("#########################################################")
+            print("")
+            grid.print_flat_grid_values()
+            cell.value = current_cell_value
+            print("")
+            print("Agent: Focusing on Cell{} in Box{}, marked with an X\n".format(cell.coord, cell.box))
+            print("Agent: Cell has {} as possible values\n".format(cell.possible_values))
+
+            for i in cell.possible_values:
+                change = [cell, i]
+                if change not in self.change_log or len(cell.possible_values) <= 1:
+                    if grid.check_valid(cell, i):
+                        grid.update_cell(cell, i)
+                        self.change_log.append(change)
+                        self.update_cell_solving_order
+                    else:
+                        print("Cell{} failed validity check with value {}".format(cell.coord, i))
+                else:
+                    print("Agent: Cell{} with value {} in change log".format(cell.coord, i))
+
+        elif not self.queue and grid.remaining_empty_cells > 2:
+
+            for i in range(len(self.change_log) - 1, 0, -1):
+                cell = self.change_log[i][0]
+                for j in cell.possible_values:
+                    change = [cell, j]
+                    if change not in self.change_log:
+                        print("")
+                        print("#########################################################")
+                        print("################ STEP {} ################################".format(self.step_count))
+                        print("#########################################################")
+                        print("")
+                        print("Agent: No more cells with possible values, puzzle still unsolved")
+                        print("Agent: Changing Cell{} value back to 0, and re-adding back to queue".format(cell.coord))
+                        grid.undo_cell_change(cell)
+                        self.update_cell_solving_order
+                        self.queue.append(cell)
+                        return
+                    else:
+                        print("Agent: Cell{} with value {} in change log".format(cell.coord, j))
+
+        print("Queue: {}".format(self.queue))
+
+        print("Grid remaining: {}".format(grid.remaining_empty_cells))
+
+    def solve_the_sudoku(self, grid):
+        iteration = 0
+        length = len(self.queue)
+        while iteration < length:
+            for i in range(0,len(self.queue)):
+                cell = self.queue[i]
+                if len(cell.possible_values) == 1:
+                    print("Set Cell{} to {}, pv: {}".format(cell.coord, cell.value, cell.possible_values))
+                    cell.value = cell.possible_values[0]
+                    grid.update_all_cells_possible_values()
+                    iteration += 1
 
 
+    def update_cell_solving_order(self, grid):
 
+        self.order_cells_by_least_possible_values(grid)
 
+        stuff = self.cell_order.pop(0)
 
+        self.queue = [j for sub in self.cell_order for j in sub]  # flatten cell order
 
-
-    def update_cell_solving_order(self, grid, style):
-
-        if style == "min_ascending_values_row":
-            self.min_ascending_values_row(grid)
-        elif style == "min_ascending_values_column":
-            self.min_ascending_values_column(grid)
-        elif style == "min_ascending_cell_values_box":
-            self.min_ascending_cell_values_box(grid)
-        elif style == "min_ascending_remaining_box":
-            self.min_ascending_remaining_box(grid)
-
-        self.queue = [j for sub in self.cell_order for j in sub] # flatten cell order
-
-    def min_ascending_values_row(self, grid):
-        print("Agent: Updating list of unsolved cells in ascending order of possible values, by row")
+    def order_cells_by_least_possible_values(self, grid):
         for row in range(0, grid.cell_dimension):
-            if not grid.rows[row]:
-                for column in range(0, grid.cell_dimension):
-                    if not grid.columns[column]:
-                        possible_values_count = len(grid.flat_grid[row][column].possible_values)
-                        cell = grid.flat_grid[row][column]
-                        if possible_values_count > 0 and cell.value == 0:
-                            self.cell_order[possible_values_count].append(grid.flat_grid[row][column])
-
-    def min_ascending_values_column(self, grid):
-        print("Agent: Updating list of unsolved cells in ascending order of possible values, by column")
-        for column in range(0, grid.cell_dimension):
-            if not grid.columns[column]:
-                for row in range(0, grid.cell_dimension):
-                    if not grid.rows[row]:
-                        possible_values_count = len(grid.flat_grid[row][column].possible_values)
-                        cell = grid.flat_grid[row][column]
-                        if possible_values_count > 0 and cell.value == 0:
-                            self.cell_order[possible_values_count].append(grid.flat_grid[row][column])
-
-    def min_ascending_cell_values_box(self, grid):
-        print("Agent: Updating list of unsolved cells in ascending order of possible values, by box by row")
-        for row in range(0, grid.grid_dimension):
-            if not grid.rows[row]:
-                for column in range(0, grid.grid_dimension):
-                    if not grid.columns[column]:
-                        box = grid.boxes[row][column]
-                        if not box.complete:
-                            for box_row in range(0, box.dimension):
-                                for box_column in range(0, box.dimension):
-                                    cell = box.cells[box_row][box_column]
-                                    possible_values_count = len(cell.possible_values)
-                                    if possible_values_count > 0 and cell.value == 0:
-                                        self.cell_order[possible_values_count].append(cell)
-
-    def min_ascending_remaining_box(self, grid):
-        print("Agent: Updating list of unsolved cells in ascending order of possible values, by box's remaining cells")
-        print("Agent: Remaining cells is: {}".format(grid.remaining_empty_cells))
-        for row in range(0, grid.grid_dimension):
-            if not grid.rows[row]:
-                for column in range(0, grid.grid_dimension):
-                    if not grid.columns[column]:
-                        box = grid.boxes[row][column]
-                        if not box.complete:
-                            for box_row in range(0, box.dimension):
-                                for box_column in range(0, box.dimension):
-                                    cell = box.cells[box_row][box_column]
-                                    possible_values_count = len(cell.possible_values)
-                                    if possible_values_count > 0 and cell.value == 0:
-                                        self.cell_order[box.remaining_cells].append(cell)
-
-
-
-class OldAgent:
-    def __init__(self, maze, start, end, episodes, gamma, alpha):
-        # Hyper parameters
-        self.episodes = episodes
-        self.gamma = gamma  # interest in neighbours (discount value)
-        self.alpha = alpha  # rate of learning
-        self.maze = maze
-        self.start = self.maze.cells[start[0]][start[1]]
-        self.end = end
-        self.path = []
-        self.rewards_map = []
-        for x in range(0, self.maze.rows):
-            row = []
-            for y in range(0, self.maze.columns):
-                reward = ((x - end[0]) + (y - end[1])) / 2
-                if reward > 0:
-                    reward = reward * -1
-                row.append(reward)
-            self.rewards_map.append(row)
-
-        self.values = []
-        for x in range(0, maze.rows):
-            row = []
-            for y in range(0, maze.columns):
-                value = 0
-                row.append(value)
-            self.values.append(row)
-
-    def print_rewards_map(self):
-        for x in range(len(self.rewards_map)):
-            print(str(self.rewards_map[x]))
-
-    def print_values_map(self):
-        for x in range(len(self.values)):
-            print(str(self.values[x]))
-
-    def get_move_text(self, i):
-        if i == 0:
-            return "north"
-        elif i == 1:
-            return "east"
-        elif i == 2:
-            return "south"
-        elif i == 3:
-            return "west"
-
-    def check_if_valid_move(self, cell, direction):
-        return not cell.walls[direction]
-
-    def get_action(self, cell):
-        move = ""
-        while True:
-            i = random.randint(0, 3)
-            if i == 0:
-                move = "north"
-                if self.check_if_valid_move(cell, move):
-                    break
-            elif i == 1:
-                move = "east"
-                if self.check_if_valid_move(cell, move):
-                    break
-            elif i == 2:
-                move = "south"
-                if self.check_if_valid_move(cell, move):
-                    break
-            elif i == 3:
-                move = "west"
-                if self.check_if_valid_move(cell, move):
-                    break
-        return move
-
-    def take_action(self, cell, action):
-        x = cell.x
-        y = cell.y
-        if action == "north":
-            x = x - 1
-        elif action == "east":
-            y = y + 1
-        elif action == "south":
-            x = x + 1
-        elif action == "west":
-            y = y - 1
-
-        return self.rewards_map[x][y], self.maze.cells[x][y]
-
-    def get_random_state(self):
-        x = random.randint(0, self.maze.rows - 1)
-        y = random.randint(0, self.maze.columns - 1)
-
-        return [x, y]
-
-    def tdl(self):
-
-        for i in range(0, self.episodes):
-            cell = self.start
-            while True:
-                action = self.get_action(cell)
-                reward, next_cell = self.take_action(cell, action)
-
-                if next_cell.get_coordinates() == self.end:
-                    break
-
-                # V(S) = V(S) + alpha * (reward_of_new_state + gamma * V(new_state) - V(current_state))
-                current_value = self.values[cell.x][cell.y]
-                after = self.values[cell.x][cell.y]
-
-                self.values[cell.x][cell.y] = round(
-                    self.values[cell.x][cell.y] + self.alpha * (reward + self.gamma * after - current_value), 3)
-
-                cell = next_cell
-
-    def get_path(self, backtracking=True, max_attempts=0):
-        travelled = []
-        travelled.append(self.start)
-        cell = self.start
-        if backtracking:
-
-            ignore = ""
-            back_tracks = 0
-            for cells in range(0, len(self.maze.cells) * len(self.maze.cells[0])):
-
-                best_value = -1000000
-                best_cell = ""
-                best_direction = ""
-                valid_moves = 0
-                next_cell = cell
-
-                # For current cell, check all four moves
-                for i in range(0, 4):
-
-                    # Get the direction
-                    direction = self.get_move_text(i)
-
-                    # If valid move then get next cell
-                    if self.check_if_valid_move(cell, direction) and direction != ignore:
-
-                        rewards, next_cell = self.take_action(cell, direction)
-                        # If the next cells value is greater than the current best, and next cell has not been travelled
-                        # create new best values
-                        if self.values[next_cell.x][next_cell.y] > best_value and next_cell not in travelled:
-                            valid_moves = valid_moves + 1
-                            best_value = self.values[next_cell.x][next_cell.y]
-                            best_cell = next_cell
-                            best_direction = direction
-
-                    if next_cell.get_coordinates() == self.end:
-                        return back_tracks
-
-                if valid_moves == 0:
-                    travelled.pop()
-                    ignore = self.path.pop()
-                    cell = travelled[-1]
-                    back_tracks = back_tracks + 1
-
-                else:
-                    self.path.append(best_direction)
-                    travelled.append(best_cell)
-                    cell = best_cell
-                    ignore = ""
-
-        else:
-            dead_ends = []
-            attempts = 0
-            while attempts < max_attempts:
-
-                best_value = -1000000
-                best_cell = ""
-                best_direction = ""
-                valid_moves = 0
-                next_cell = cell
-
-                print(str(attempts) + " " + str(self.path))
-                # For current cell, check all four moves
-                for i in range(0, 4):
-
-                    # Get the direction
-                    direction = self.get_move_text(i)
-
-                    # If valid move then get next cell
-                    if self.check_if_valid_move(cell, direction):
-
-                        rewards, next_cell = self.take_action(cell, direction)
-                        # If the next cells value is greater than the current best, and next cell has not been travelled
-                        # create new best values
-                        if self.values[next_cell.x][
-                            next_cell.y] > best_value and next_cell not in travelled and next_cell not in dead_ends:
-                            valid_moves = valid_moves + 1
-                            best_value = self.values[next_cell.x][next_cell.y]
-                            best_cell = next_cell
-                            best_direction = direction
-
-                    if next_cell.get_coordinates() == self.end:
-                        return attempts
-
-                if valid_moves == 0:
-                    self.path = []
-                    travelled = []
-                    dead_ends.append(cell)
-                    cell = self.start
-                    attempts = attempts + 1
-                else:
-                    self.path.append(best_direction)
-                    travelled.append(best_cell)
-                    cell = best_cell
+            for column in range(0, grid.cell_dimension):
+                cell = grid.flat_grid[row][column]
+                minimum_count = len(cell.possible_values)
+                self.cell_order[minimum_count].append(cell)
+    def order_cells_by_closest_to_finish(self, grid):
+        for row in range(0, grid.cell_dimension):
+            for column in range(0, grid.cell_dimension):
+                cell = grid.flat_grid[row][column]
+                minimum_count = grid.get_minimum_remaining(cell)
+                print("Cell{} has minimum count: {}".format(cell.coord, minimum_count))
+                self.cell_order[minimum_count].append(cell)
