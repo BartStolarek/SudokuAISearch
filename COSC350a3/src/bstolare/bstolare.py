@@ -47,9 +47,11 @@ def main():
     print("#########################################################")
     grid.print_flat_grid_values()
     print("")
-    #grid.print_flat_grid_coords()
+    grid.print_flat_grid_coords()
     print("")
-    #grid.print_flat_grid_box()
+    grid.print_flat_grid_box()
+    print("")
+    grid.print_flat_grid_possible_values()
     print("#########################################################")
     print("#########################################################\n")
     print("Grid: There are {} remaining cells to solve\n".format(grid.remaining_empty_cells))
@@ -71,7 +73,7 @@ def main():
 
     remaining = 100
     visited = []
-    agent.solve_the_sudoku(grid=grid)
+    agent.eds_advice(grid=grid)
 
 
 
